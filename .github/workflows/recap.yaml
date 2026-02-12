@@ -3,11 +3,11 @@ on:
     inputs:
       name:
         description: "Name"
-        default: "Mehak"
+        default: "Kalash"
         required: true
       city:
         description: "City"
-        default: "Baraut"
+        default: "Jamshedpur"
         required: true
       country:
         default: "India"
@@ -17,11 +17,14 @@ jobs:
   hello-world:
     runs-on: ubuntu-latest
     steps:
-      - name: Say hello
-        run: echo "Hello ${{ github.event.inputs.name }}"
-      - name: List files
+      - name: Say Hello
+        run: echo "Hello ${{ github.event.inputs.name }}!"
+
+      - name: List Files
         run: ls -la
+
       - name: Checkout
-        run: actions/checkout@v4
-      - name: List files
+        uses: actions/checkout@v4
+
+      - name: List Files
         run: ls -la
