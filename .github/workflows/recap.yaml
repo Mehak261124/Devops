@@ -1,3 +1,4 @@
+name: Hello World
 on:
   workflow_dispatch:
     inputs:
@@ -10,6 +11,7 @@ on:
         default: "Baraut"
         required: true
       country:
+        description: "Country"
         default: "India"
         required: true
 
