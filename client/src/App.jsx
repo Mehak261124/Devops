@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import ProductList from './components/ProductList';
 
 function App() {
     const [data, setData] = useState(null);
@@ -13,7 +14,7 @@ function App() {
 
     return (
         <div className="container">
-            <h1>ShopSmart</h1>
+            <h1>ShopSmart and save more!</h1>
             <div className="card">
                 <h2>Backend Status</h2>
                 {data ? (
@@ -26,6 +27,9 @@ function App() {
                     <p>Loading backend status...</p>
                 )}
             </div>
+
+            <ProductList />
+
             <p className="hint">
                 Edit <code>src/App.jsx</code> and save to test HMR
             </p>
