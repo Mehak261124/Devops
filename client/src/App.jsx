@@ -1,40 +1,84 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react';
+import NavBar from './components/NavBar';
+import HeroSection from './components/HeroSection';
 import ProductList from './components/ProductList';
+import CartDrawer from './components/CartDrawer';
+import ProductModal from './components/ProductModal';
+import Footer from './components/Footer';
+import { useToast, ToastContainer } from './components/Toast';
 
 function App() {
-    const [data, setData] = useState(null);
+  const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const { toasts, addToast } = useToast();
 
-    useEffect(() => {
-        const apiUrl = import.meta.env.VITE_API_URL || '';
-        fetch(`${apiUrl}/api/health`)
-            .then(res => res.json())
-            .then(data => setData(data))
-            .catch(err => console.error('Error fetching health check:', err));
-    }, []);
+  const handleAddToCart = (product) => {
+    setCart((prev) => {
+      const existing = prev.find((item) => item.id === product.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
+        );
+      }
+      return [...prev, { ...product, qty: 1 }];
+    });
+    addToast(`${product.name} added to cart!`, 'success');
+  };
 
-    return (
-        <div className="container">
-            <h1>ShopSmart and save more!</h1>
-            <div className="card">
-                <h2>Backend Status</h2>
-                {data ? (
-                    <div>
-                        <p>Status: <span className="status-ok">{data.status}</span></p>
-                        <p>Message: {data.message}</p>
-                        <p>Timestamp: {data.timestamp}</p>
-                    </div>
-                ) : (
-                    <p>Loading backend status...</p>
-                )}
-            </div>
+  const handleUpdateQty = (id, newQty) => {
+    setCart((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, qty: newQty } : item))
+    );
+  };
 
-            <ProductList />
+  const handleRemoveFromCart = (id) => {
+    setCart((prev) => prev.filter((item) => item.id !== id));
+    addToast('Item removed from cart', 'info');
+  };
 
-            <p className="hint">
-                Edit <code>src/App.jsx</code> and save to test HMR
-            </p>
-        </div>
-    )
+  const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
+
+  const scrollToProducts = () => {
+    document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  return (
+    <>
+      <NavBar cartCount={cartCount} onCartClick={() => setCartOpen(true)} />
+
+      <HeroSection onShopNow={scrollToProducts} />
+
+      <ProductList
+        onAddToCart={handleAddToCart}
+        onViewDetails={(product) => setSelectedProduct(product)}
+      />
+
+      <Footer />
+
+      {cartOpen && (
+        <CartDrawer
+          cart={cart}
+          onClose={() => setCartOpen(false)}
+          onUpdateQty={handleUpdateQty}
+          onRemove={handleRemoveFromCart}
+        />
+      )}
+
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onAddToCart={(product) => {
+            handleAddToCart(product);
+            setSelectedProduct(null);
+          }}
+        />
+      )}
+
+      <ToastContainer toasts={toasts} />
+    </>
+  );
 }
 
-export default App
+export default App;
