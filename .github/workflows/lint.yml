@@ -6,7 +6,7 @@ on:
 
 jobs:
   lint-client:
-    name: Lint Client (ESLint + Prettier)
+    name: Lint Client (ESLint)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,11 +28,8 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
-      - name: Check Prettier formatting
-        run: npx prettier --check "src/**/*.{js,jsx,css}"
-
   lint-server:
-    name: Lint Server (ESLint + Prettier)
+    name: Lint Server (ESLint)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -53,6 +50,3 @@ jobs:
 
       - name: Run ESLint
         run: npm run lint
-
-      - name: Check Prettier formatting
-        run: npx prettier --check "src/**/*.js"

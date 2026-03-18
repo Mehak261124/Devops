@@ -11,13 +11,6 @@ function getEmoji(category) {
   return CATEGORY_EMOJIS[category] || '📦';
 }
 
-function getRating() {
-  // Deterministic-ish rating based on product id would be ideal,
-  // but for visual flair we cycle through a few values.
-  const ratings = [4.5, 4.8, 4.2, 4.9, 4.6, 4.7, 5.0, 4.3, 4.4, 4.1];
-  return ratings[Math.floor(Math.random() * ratings.length)];
-}
-
 function renderStars(rating) {
   const full = Math.floor(rating);
   const half = rating % 1 >= 0.5;
@@ -30,6 +23,7 @@ function ProductCard({ product, onAddToCart, onViewDetails }) {
   const emoji = getEmoji(product.category);
   const rating = product._rating || 4.5;
   const isStocked = product.inStock;
+  const hasImage = product.image && product.image.trim() !== '';
 
   return (
     <div
@@ -39,7 +33,16 @@ function ProductCard({ product, onAddToCart, onViewDetails }) {
       role="article"
     >
       <div className="product-card__image">
-        <span role="img" aria-label={product.category}>{emoji}</span>
+        {hasImage ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            className="product-card__img"
+            loading="lazy"
+          />
+        ) : (
+          <span role="img" aria-label={product.category}>{emoji}</span>
+        )}
         <span className={`product-card__badge ${isStocked ? 'in-stock' : 'out-of-stock'}`}>
           {isStocked ? '✓ In Stock' : 'Sold Out'}
         </span>

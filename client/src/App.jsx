@@ -4,6 +4,7 @@ import HeroSection from './components/HeroSection';
 import ProductList from './components/ProductList';
 import CartDrawer from './components/CartDrawer';
 import ProductModal from './components/ProductModal';
+import CheckoutPage from './components/CheckoutPage';
 import Footer from './components/Footer';
 import { useToast, ToastContainer } from './components/Toast';
 
@@ -11,6 +12,7 @@ function App() {
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [currentView, setCurrentView] = useState('home'); // home | checkout
   const { toasts, addToast } = useToast();
 
   const handleAddToCart = (product) => {
@@ -37,6 +39,19 @@ function App() {
     addToast('Item removed from cart', 'info');
   };
 
+  const handleCheckout = () => {
+    setCurrentView('checkout');
+  };
+
+  const handlePlaceOrder = (orderId) => {
+    addToast(`Order ${orderId} placed successfully! 🎉`, 'success');
+  };
+
+  const handleBackToShop = () => {
+    setCart([]);
+    setCurrentView('home');
+  };
+
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
   const scrollToProducts = () => {
@@ -45,16 +60,32 @@ function App() {
 
   return (
     <>
-      <NavBar cartCount={cartCount} onCartClick={() => setCartOpen(true)} />
-
-      <HeroSection onShopNow={scrollToProducts} />
-
-      <ProductList
-        onAddToCart={handleAddToCart}
-        onViewDetails={(product) => setSelectedProduct(product)}
+      <NavBar
+        cartCount={cartCount}
+        onCartClick={() => setCartOpen(true)}
+        onLogoClick={() => setCurrentView('home')}
       />
 
-      <Footer />
+      {currentView === 'home' && (
+        <>
+          <HeroSection onShopNow={scrollToProducts} />
+
+          <ProductList
+            onAddToCart={handleAddToCart}
+            onViewDetails={(product) => setSelectedProduct(product)}
+          />
+
+          <Footer />
+        </>
+      )}
+
+      {currentView === 'checkout' && (
+        <CheckoutPage
+          cart={cart}
+          onPlaceOrder={handlePlaceOrder}
+          onBack={handleBackToShop}
+        />
+      )}
 
       {cartOpen && (
         <CartDrawer
@@ -62,6 +93,7 @@ function App() {
           onClose={() => setCartOpen(false)}
           onUpdateQty={handleUpdateQty}
           onRemove={handleRemoveFromCart}
+          onCheckout={handleCheckout}
         />
       )}
 

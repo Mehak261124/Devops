@@ -7,7 +7,7 @@ const CATEGORY_EMOJIS = {
   Accessories: '💍',
 };
 
-function CartDrawer({ cart, onClose, onUpdateQty, onRemove }) {
+function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onCheckout }) {
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 
   return (
@@ -31,34 +31,41 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove }) {
               </p>
             </div>
           ) : (
-            cart.map((item) => (
-              <div className="cart-item" key={item.id}>
-                <div className="cart-item__icon">
-                  {CATEGORY_EMOJIS[item.category] || '📦'}
+            cart.map((item) => {
+              const hasImage = item.image && item.image.trim() !== '';
+              return (
+                <div className="cart-item" key={item.id}>
+                  <div className="cart-item__icon">
+                    {hasImage ? (
+                      <img src={item.image} alt={item.name} className="cart-item__thumb" />
+                    ) : (
+                      CATEGORY_EMOJIS[item.category] || '📦'
+                    )}
+                  </div>
+                  <div className="cart-item__details">
+                    <div className="cart-item__name">{item.name}</div>
+                    <div className="cart-item__price">${(item.price * item.qty).toFixed(2)}</div>
+                  </div>
+                  <div className="cart-item__controls">
+                    <button
+                      className="cart-item__qty-btn"
+                      onClick={() => (item.qty <= 1 ? onRemove(item.id) : onUpdateQty(item.id, item.qty - 1))}
+                      aria-label="Decrease quantity"
+                    >
+                      {item.qty <= 1 ? '🗑' : '−'}
+                    </button>
+                    <span className="cart-item__qty">{item.qty}</span>
+                    <button
+                      className="cart-item__qty-btn"
+                      onClick={() => onUpdateQty(item.id, item.qty + 1)}
+                      aria-label="Increase quantity"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-                <div className="cart-item__details">
-                  <div className="cart-item__name">{item.name}</div>
-                  <div className="cart-item__price">${(item.price * item.qty).toFixed(2)}</div>
-                </div>
-                <div className="cart-item__controls">
-                  <button
-                    className="cart-item__qty-btn"
-                    onClick={() => (item.qty <= 1 ? onRemove(item.id) : onUpdateQty(item.id, item.qty - 1))}
-                    aria-label="Decrease quantity"
-                  >
-                    {item.qty <= 1 ? '🗑' : '−'}
-                  </button>
-                  <span className="cart-item__qty">{item.qty}</span>
-                  <button
-                    className="cart-item__qty-btn"
-                    onClick={() => onUpdateQty(item.id, item.qty + 1)}
-                    aria-label="Increase quantity"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -68,7 +75,14 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove }) {
               <span className="cart-drawer__total-label">Total</span>
               <span className="cart-drawer__total-value">${total.toFixed(2)}</span>
             </div>
-            <button className="cart-drawer__checkout" id="checkout-btn">
+            <button
+              className="cart-drawer__checkout"
+              id="checkout-btn"
+              onClick={() => {
+                onClose();
+                onCheckout();
+              }}
+            >
               Proceed to Checkout →
             </button>
           </div>

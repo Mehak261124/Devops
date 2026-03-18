@@ -1,9 +1,15 @@
 import React from 'react';
 
-function NavBar({ cartCount, onCartClick }) {
+function NavBar({ cartCount, onCartClick, onLogoClick }) {
   return (
     <nav className="navbar" id="navbar">
-      <div className="navbar__logo">
+      <div
+        className="navbar__logo"
+        onClick={onLogoClick}
+        style={{ cursor: 'pointer' }}
+        role="button"
+        tabIndex={0}
+      >
         Shop<span>Smart</span>
       </div>
       <div className="navbar__actions">

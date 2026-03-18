@@ -12,6 +12,7 @@ function ProductModal({ product, onClose, onAddToCart }) {
   const emoji = CATEGORY_EMOJIS[product.category] || '📦';
   const isStocked = product.inStock;
   const rating = product._rating || 4.5;
+  const hasImage = product.image && product.image.trim() !== '';
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -27,7 +28,11 @@ function ProductModal({ product, onClose, onAddToCart }) {
         </button>
 
         <div className="modal__image">
-          <span role="img" aria-label={product.category}>{emoji}</span>
+          {hasImage ? (
+            <img src={product.image} alt={product.name} className="modal__img" />
+          ) : (
+            <span role="img" aria-label={product.category}>{emoji}</span>
+          )}
         </div>
 
         <div className="modal__body">
