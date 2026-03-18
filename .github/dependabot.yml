@@ -8,6 +8,9 @@ updates:
     labels:
       - "dependencies"
       - "frontend"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/server"
@@ -17,6 +20,9 @@ updates:
     labels:
       - "dependencies"
       - "backend"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -25,3 +31,6 @@ updates:
     labels:
       - "dependencies"
       - "ci"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
