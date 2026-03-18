@@ -24,7 +24,7 @@ test.describe('Product Listing & Interaction', () => {
   test('search filters products by name', async ({ page }) => {
     const searchInput = page.getByPlaceholder('Search products...');
     await searchInput.fill('Headphones');
-    await page.getByRole('button', { name: 'Search' }).click();
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
 
     // Wait for filtered results
     await page.waitForTimeout(1000);
@@ -40,7 +40,7 @@ test.describe('Product Listing & Interaction', () => {
   test('clear search resets to all products', async ({ page }) => {
     const searchInput = page.getByPlaceholder('Search products...');
     await searchInput.fill('Headphones');
-    await page.getByRole('button', { name: 'Search' }).click();
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
     await page.waitForTimeout(500);
 
     // Clear search
@@ -97,7 +97,7 @@ test.describe('Product Listing & Interaction', () => {
   test('no products found message when search has no results', async ({ page }) => {
     const searchInput = page.getByPlaceholder('Search products...');
     await searchInput.fill('xyznonexistent');
-    await page.getByRole('button', { name: 'Search' }).click();
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
 
     await expect(page.getByText('No products found')).toBeVisible({ timeout: 5000 });
   });

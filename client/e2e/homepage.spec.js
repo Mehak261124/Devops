@@ -20,7 +20,7 @@ test.describe('Homepage', () => {
   test('displays the search bar', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByPlaceholder('Search products...')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Search' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Search', exact: true })).toBeVisible();
   });
 
   test('displays the footer', async ({ page }) => {
@@ -32,7 +32,7 @@ test.describe('Homepage', () => {
   test('cart button opens cart drawer', async ({ page }) => {
     await page.goto('/');
     await page.getByLabel('Open cart').click();
-    await expect(page.getByText('Your Cart')).toBeVisible();
+    await expect(page.getByText(/Your Cart/)).toBeVisible();
     await expect(page.getByText('Your cart is empty')).toBeVisible();
   });
 });
