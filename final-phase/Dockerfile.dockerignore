@@ -1,0 +1,15 @@
+# Ignore everything by default for this Dockerfile build
+**
+
+# Include only backend sources required for image build
+!server/
+!server/**
+!final-phase/Dockerfile
+
+# Exclude local/runtime clutter from server tree
+server/node_modules
+server/reports
+server/coverage
+server/.env
+server/test.db
+server/dev.db

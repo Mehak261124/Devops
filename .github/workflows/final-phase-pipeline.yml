@@ -1,0 +1,183 @@
+name: Final Phase Pipeline
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  final-phase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ============================================================
+      # Phase 1 - Testing + Reports
+      # ============================================================
+      - name: Install Server Dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Prepare Prisma Test Database
+        working-directory: ./server
+        env:
+          DATABASE_URL: file:./test.db
+        run: |
+          npx prisma generate
+          npx prisma db push
+
+      - name: Run Server Unit + Integration Tests (Report)
+        working-directory: ./server
+        env:
+          DATABASE_URL: file:./test.db
+        run: |
+          mkdir -p reports
+          npm test -- --coverage --json --outputFile=reports/server-test-report.json
+
+      - name: Install Client Dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Run Client Unit Tests (Report)
+        working-directory: ./client
+        run: |
+          mkdir -p reports
+          npx vitest run src/ --reporter=json --outputFile=reports/client-test-report.json
+
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-phase-test-reports
+          if-no-files-found: error
+          path: |
+            server/reports/**
+            client/reports/**
+
+      # ============================================================
+      # Phase 2 - Infrastructure Provisioning (Terraform)
+      # ============================================================
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Terraform Init
+        working-directory: ./final-phase/terraform
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        working-directory: ./final-phase/terraform
+        run: terraform validate
+
+      - name: Terraform Plan (Infrastructure Only)
+        working-directory: ./final-phase/terraform
+        run: |
+          terraform plan \
+            -input=false \
+            -out=tfplan-infra \
+            -var="aws_region=${AWS_REGION}" \
+            -var="deploy_ecs_service=false"
+
+      - name: Terraform Apply (Infrastructure Only)
+        working-directory: ./final-phase/terraform
+        run: terraform apply -input=false -auto-approve tfplan-infra
+
+      # ============================================================
+      # Phase 3 - Build + ECR Push + ECS Fargate Deployment
+      # ============================================================
+      - name: Resolve Lab Role ARNs
+        id: roles
+        env:
+          ECS_EXECUTION_ROLE_ARN: ${{ secrets.ECS_EXECUTION_ROLE_ARN }}
+          ECS_TASK_ROLE_ARN: ${{ secrets.ECS_TASK_ROLE_ARN }}
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          DEFAULT_LAB_ROLE="arn:aws:iam::${ACCOUNT_ID}:role/LabRole"
+
+          EXEC_ROLE="$ECS_EXECUTION_ROLE_ARN"
+          TASK_ROLE="$ECS_TASK_ROLE_ARN"
+
+          if [ -z "$EXEC_ROLE" ]; then
+            EXEC_ROLE="$DEFAULT_LAB_ROLE"
+          fi
+
+          if [ -z "$TASK_ROLE" ]; then
+            TASK_ROLE="$EXEC_ROLE"
+          fi
+
+          echo "ecs_execution_role_arn=$EXEC_ROLE" >> "$GITHUB_OUTPUT"
+          echo "ecs_task_role_arn=$TASK_ROLE" >> "$GITHUB_OUTPUT"
+
+      - name: Read ECR Repository URL
+        id: ecr
+        working-directory: ./final-phase/terraform
+        run: |
+          ECR_REPOSITORY_URL=$(terraform output -raw ecr_repository_url)
+          echo "ecr_repository_url=$ECR_REPOSITORY_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker Image
+        id: image
+        env:
+          ECR_REPOSITORY_URL: ${{ steps.ecr.outputs.ecr_repository_url }}
+        run: |
+          IMAGE_TAG=${GITHUB_SHA::7}
+          IMAGE_URI="${ECR_REPOSITORY_URL}:${IMAGE_TAG}"
+
+          docker build -f final-phase/Dockerfile -t "$IMAGE_URI" .
+          docker push "$IMAGE_URI"
+
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+      - name: Terraform Plan (ECS Deployment)
+        working-directory: ./final-phase/terraform
+        run: |
+          terraform plan \
+            -input=false \
+            -out=tfplan-deploy \
+            -var="aws_region=${AWS_REGION}" \
+            -var="deploy_ecs_service=true" \
+            -var="container_image=${{ steps.image.outputs.image_uri }}" \
+            -var="ecs_execution_role_arn=${{ steps.roles.outputs.ecs_execution_role_arn }}" \
+            -var="ecs_task_role_arn=${{ steps.roles.outputs.ecs_task_role_arn }}"
+
+      - name: Terraform Apply (ECS Deployment)
+        working-directory: ./final-phase/terraform
+        run: terraform apply -input=false -auto-approve tfplan-deploy
+
+      - name: Read ECS Outputs
+        id: ecs
+        working-directory: ./final-phase/terraform
+        run: |
+          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name)
+          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name)
+
+          echo "ecs_cluster_name=$ECS_CLUSTER_NAME" >> "$GITHUB_OUTPUT"
+          echo "ecs_service_name=$ECS_SERVICE_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Verify ECS Service Running
+        env:
+          ECS_CLUSTER_NAME: ${{ steps.ecs.outputs.ecs_cluster_name }}
+          ECS_SERVICE_NAME: ${{ steps.ecs.outputs.ecs_service_name }}
+        run: ./final-phase/scripts/verify-ecs.sh

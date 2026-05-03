@@ -1,0 +1,15 @@
+aws_region = "us-east-1"
+
+project_name      = "shopsmart"
+environment       = "final"
+s3_bucket_prefix  = "shopsmart-final-artifacts"
+container_port    = 5001
+desired_count     = 1
+ecs_cpu           = 256
+ecs_memory        = 512
+assign_public_ip  = true
+deploy_ecs_service = false
+
+# IMPORTANT: Use existing AWS Academy lab roles. Do not create roles in Terraform.
+# ecs_execution_role_arn = "arn:aws:iam::<account-id>:role/LabRole"
+# ecs_task_role_arn      = "arn:aws:iam::<account-id>:role/LabRole"
